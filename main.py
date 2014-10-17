@@ -12,12 +12,23 @@ done = False
 clock = pygame.time.Clock()
 font = pygame.font.Font(pygame.font.get_default_font(), 20)
 
+bullet_colors = [
+	(255, 0, 0),
+	(0, 255, 0),
+	(0, 0, 255),
+	(255, 255, 0),
+	(255, 0, 255),
+	(0, 255, 255)
+]
+
 class Bullet:
 	def __init__(self, x, y, angle):
 		self.x = x
 		self.y = y
 		self.angle = angle
 		self.vel = 2
+		
+		self.color = random.choice(bullet_colors)
 	
 	def logic(self):
 		a = math.radians(self.angle)
@@ -26,12 +37,17 @@ class Bullet:
 	
 	def render(self):
 		rect = (self.x - 3, self.y - 3, 6, 6)
-		pygame.draw.rect(screen, (0, 255, 0), rect)
+		pygame.draw.rect(screen, self.color, rect)
 
 class Ship:
 	def __init__(self):
 		self.x = 640/2
 		self.y = 480/2
+		self.velx = 0
+		self.vely = 0
+		self.accx = 0
+		self.accy = 0
+		
 		self.angle = 0
 		self.radius = 10
 		self.has_shot = False
@@ -46,10 +62,38 @@ class Ship:
 		if keys[pygame.K_RIGHT]:
 			self.angle = self.angle + 3
 		
+		if keys[pygame.K_UP]:
+			a = math.radians(self.angle)
+			r = 0.06
+			self.accx = r * math.cos(a)
+			self.accy = r * math.sin(a)
+		
+		else:
+			self.accx = 0
+			self.accy = 0
+		
 		if keys[pygame.K_SPACE] and not self.has_shot:
 			bullets.append( Bullet(self.x, self.y, self.angle) )
 			
 		self.has_shot = keys[pygame.K_SPACE]
+		
+		self.velx = self.velx + self.accx
+		self.vely = self.vely + self.accy
+		
+		self.x = self.x + self.velx
+		self.y = self.y + self.vely
+
+		if self.x < -self.radius:
+			self.x = self.x + 640 + 2 * self.radius
+		
+		if self.x > 640 + self.radius:
+			self.x = self.x - 640 - 2 * self.radius
+		
+		if self.y < -self.radius:
+			self.y = self.y + 480 + 2 * self.radius
+		
+		if self.y > 480 + self.radius:
+			self.y = self.y - 480 - 2 * self.radius
 	
 	def make_point(self, x, y):
 		r = math.sqrt(x**2 + y**2)
