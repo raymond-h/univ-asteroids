@@ -12,9 +12,6 @@ done = False
 clock = pygame.time.Clock()
 font = pygame.font.Font(pygame.font.get_default_font(), 20)
 
-asteroids = []
-bullets = []
-
 class Bullet:
 	def __init__(self, x, y, angle):
 		self.x = x
@@ -119,6 +116,12 @@ def random_vel():
 def random_size():
 	return random.randint(16, 24)
 
+def spawn_asteroid():
+	x, y = random_pos()
+	velx, vely = random_vel()
+	size = random_size()
+	asteroids.append(Asteroid(x, y, velx, vely, size))
+
 def check_collision_ship_asteroid(ship, asteroid):
 	r = ship.radius + asteroid.size
 	d = math.sqrt((asteroid.x - ship.x)**2 + (asteroid.y - ship.y)**2)
@@ -131,13 +134,21 @@ def check_collision_bullet_asteroid(bullet, asteroid):
 	
 	return d < r
 
-ship = Ship()
+def init():
+	global ship
+	global asteroidSpawnTimer
+	global asteroids
+	global bullets
+	global score
+	
+	score = 0
+	asteroidSpawnTimer = 5*60
+	asteroids = []
+	bullets = []
+	ship = Ship()
 
-for i in range(6):
-	x, y = random_pos()
-	velx, vely = random_vel()
-	size = random_size()
-	asteroids.append(Asteroid(x, y, velx, vely, size))
+	for i in range(6):
+		spawn_asteroid()
 
 def event():
 	global done
@@ -171,7 +182,9 @@ def logic():
 			for bullet in bullets:
 				if check_collision_bullet_asteroid(bullet, asteroid):
 					removed_asteroids.append(asteroid)
-					removed_bullets.append(bullet)
+					
+					if removed_bullets.count(bullet) == 0:
+						removed_bullets.append(bullet)
 					
 					if asteroid.size > 8:
 						x = asteroid.x
@@ -182,16 +195,27 @@ def logic():
 						for _ in range(n):
 							velx, vely = random_vel()
 							asteroids.append(Asteroid(x, y, velx, vely, size))
+						
+						global score
+						score = score + 100
 		 
 		for asteroid in removed_asteroids:
 			asteroids.remove(asteroid)
 		
 		for bullet in removed_bullets:
 			bullets.remove(bullet)
+		
+		global asteroidSpawnTimer
+		asteroidSpawnTimer = asteroidSpawnTimer - 1
+		
+		if asteroidSpawnTimer <= 0:
+			spawn_asteroid()
+			asteroidSpawnTimer = 5*60
 	
 	else:
 		# game over
-		None
+		if pygame.key.get_pressed()[pygame.K_r]:
+			init()
 
 def render():
 	if ship.alive:
@@ -204,15 +228,25 @@ def render():
 			
 		for bullet in bullets:
 			bullet.render()
+		
+		global score
+		text = font.render("Score: " + str(score), False, (255,255,255))
+		screen.blit(text, (0, 0))
 	
 	else:
 		# game over; draw game over screen
 		screen.fill( (255, 0, 0) )
 		
-		gameOverText = font.render("You are dead! no big surprise", False, (0,0,0))
+		gameOverText = font.render("You are dead! no big surprise. Press R to retry!", False, (0,0,0))
 		screen.blit(gameOverText, (320 - gameOverText.get_width()/2, 240 - gameOverText.get_height()/2))
+		
+		global score
+		text = font.render("Score: " + str(score), False, (0,0,0))
+		screen.blit(text, (320 - gameOverText.get_width()/2, 260 - gameOverText.get_height()/2))
 			
 	pygame.display.flip()	
+
+init()
 
 while not done:
 	event()
